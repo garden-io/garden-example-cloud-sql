@@ -1,0 +1,24 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Simple Node.js docker service",
+  "main": "main.js",
+  "scripts": {
+    "dev": "nodemon main.js",
+    "start": "node main.js",
+    "test": "node_modules/mocha/bin/mocha test.js --exit"
+  },
+  "author": "garden.io <info@garden.io>",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "knex": "^0.19.3",
+    "pg": "^7.12.1",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
+  },
+  "devDependencies": {
+    "mocha": "^5.1.1",
+    "supertest": "^3.0.0"
+  }
+}

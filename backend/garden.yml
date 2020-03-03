@@ -1,0 +1,52 @@
+kind: Module
+name: backend
+description: Backend service container
+type: container
+hotReload:
+  sync:
+    - target: /app/
+services:
+  - name: backend
+    hotReloadArgs: [npm, run, dev]
+    ports:
+      - name: http
+        containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /
+        port: http
+    ingresses:
+      - path: /
+        port: http
+      - path: /hello
+        port: http
+    dependencies: [db, db-init-dev]
+    env: &env-vars
+      DB_HOST: "${environment.name == 'dev' ? 'postgres' : runtime.services.db.outputs.db_host_ip}"
+      DB_PORT: "${environment.name == 'dev' ? '5432' : ''}"
+      DB_USER: "${environment.name == 'dev' ? 'postgres' :  runtime.services.db.outputs.db_username}"
+      DB_PASSWORD: "${environment.name == 'dev' ? 'postgres' :  runtime.services.db.outputs.db_password}"
+tasks:
+  - name: db-init-staging
+    description: Initializes the staging database. Creates a 'user' table and adds a user named 'Staging'.
+    disabled: ${environment.name != "staging"}
+    args: [
+      psql,
+      -w,
+      -U, "${runtime.services.db.outputs.db_username}",
+      --port, "5432",
+      --host, "${runtime.services.db.outputs.db_host_ip}",
+      -d, postgres,
+      -c, "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, created_at timestamp default NULL)",
+      -c, "INSERT INTO users (name) VALUES ('Staging')"
+    ]
+    env:
+      PGPASSWORD: ${runtime.services.db.outputs.db_password}
+    dependencies:
+      - db
+# tests: # <--- Uncomment this to to enable tests
+#   - name: integ
+#     command: [npm, run, test]
+#     env:
+#       <<: *env-vars
+#     dependencies: [backend]
