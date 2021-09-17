@@ -1,0 +1,40 @@
+kind: Project
+name: cloud-sql
+defaultEnvironment: dev
+
+variables:
+  gcp_project_id: my-gcp-project # <--- Replace this with your GCP project ID
+  gcp_region: europe-west1 # <--- And optionally this...
+  gcp_zone: europe-west1-b # <--- ... and this
+  namespace: cloud-sql-${local.env.USER || local.username}
+  terraformInitRoot: "./infra/cluster-dev"
+  terraformDbRoot: "./db-staging"
+
+environments:
+  - name: dev
+    variables:
+      defaultHostname: ${local.env.USER || local.username}-cloud-sql.tf-gke.demo.garden # <--- Replace the top level domains with your own
+  - name: staging
+    variables:
+      namespace: staging
+      terraformInitRoot: "./infra/cluster-dev" # <--- Change this if you want a dedicated staging cluster
+      # gcp_project_id: my-staging-project <--- Uncomment this if you want to deploy your staging environment to a separate project
+      defaultHostname: staging-cloud-sql.tf-gke.demo.garden # <--- Replace the top level domains with your own
+
+providers:
+  - name: terraform
+    autoApply: "${environment.name == 'dev' ? true : false}" # <--- We only recommend using `autoApply` for private development environments, since otherwise you may accidentally apply hazardous changes, or conflict with other users of an environment.
+    initRoot: "${var.terraformInitRoot}"
+    variables:
+      gcp_project_id: ${var.gcp_project_id}
+      gcp_region: ${var.gcp_region}
+      gcp_zone: ${var.gcp_zone}
+    environments: [dev, staging]
+  - name: kubernetes
+    environments: [dev, staging]
+    kubeconfig: ${var.terraformInitRoot}/${providers.terraform.outputs.kubeconfig_path}
+    context: gke
+    namespace: ${var.namespace}
+    defaultHostname: ${var.defaultHostname}
+    buildMode: cluster-docker
+    setupIngressController: nginx

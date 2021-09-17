@@ -1,0 +1,42 @@
+kind: Module
+description: Postgres Helm chart for development
+type: helm
+name: db-dev
+chart: stable/postgresql
+disabled: ${environment.name == "staging"}
+version: 5.3.11
+serviceResource:
+  kind: StatefulSet
+  name: postgres
+tasks:
+  - name: db-init-dev
+    command: [/bin/sh, -c]
+    # The postgres health check appears to go through before the server accepts remote connections, so we need to
+    # sleep for a while.
+    # https://github.com/CrunchyData/crunchy-containers/issues/653
+    args: [
+      'sleep 15 && PGPASSWORD=postgres psql -w -U postgres --host=postgres --port=5432 -d postgres -c "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, created_at timestamp default NULL)" -c "INSERT INTO users (name) VALUES (''Development'')"'
+    ]
+    env:
+      PGPASSWORD: postgres
+    dependencies:
+      - db-dev
+  - name: db-clear
+    args: [
+      psql,
+      -w,
+      -U, postgres,
+      --host, postgres,
+      --port, "5432",
+      -d, postgres,
+      -c, "TRUNCATE users"
+    ]
+    env:
+      PGPASSWORD: postgres
+    dependencies:
+      - db-dev
+values:
+  # This is a more digestable name than the default one in the template
+  fullnameOverride: postgres
+  # This should of course not be used in production
+  postgresqlPassword: postgres

@@ -1,0 +1,13 @@
+kind: Module
+name: db
+description: A Terraform module for provisioning a Google Cloud SQL database. We use a variable for the 'root' field (that contains the Terraform files) so that we can easily add more databases for different environments.
+type: terraform
+include: []
+root: ${var.terraformDbRoot}
+autoApply: true # <--- We only recommend using `autoApply` for private development environments, since otherwise you may accidentally apply hazardous changes, or conflict with other users of an environment.
+variables:
+  gcp_project_id: ${var.gcp_project_id}
+  gcp_region: ${var.gcp_region}
+  gcp_zone: ${var.gcp_zone}
+  gcp_network: ${providers.terraform.outputs.gcp_network} # <--- Pass the gcp_network value to db module
+disabled: ${environment.name != "staging"}
